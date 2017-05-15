@@ -8,6 +8,8 @@
 % WISHLIST: 
 %-Instructions: Weiter-Button 
 %-Design: screen white/Tube center/increase movement factor
+%-Power Mate Mouseclick
+%-Complete Session
 %========================================================
 
 %% Preparation
