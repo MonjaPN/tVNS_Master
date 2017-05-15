@@ -1,9 +1,13 @@
 %%===================Effort allocation task===================
-%Script for Effort cost paradigm May 08 2017
-%author: Monja P. Neuser, Vanessa Teckentrup
+%Script for Effort cost paradigm -15/05/2017-
+%author: Monja P. Neuser, Vanessa Teckentrup, Nils B. Kroemer
 
 %frequency estimation with exponential weighting
-%wishlist: -Instructions: Weiter-Button 
+%https://de.mathworks.com/help/dsp/ug/sliding-window-method-and-exponential-weighting-method.html
+
+% WISHLIST: 
+%-Instructions: Weiter-Button 
+%-Design: screen white/Tube center/increase movement factor
 %========================================================
 
 %% Preparation
@@ -61,7 +65,7 @@ end;
 % Flip to clear
 Screen('Flip', w);
 
-% Query the frame duration                                       Wofür?
+% Query the frame duration                                       WofÃ¼r?
 setup.ifi = Screen('GetFlipInterval', w);
 
 
@@ -145,7 +149,7 @@ Ball.position = [(setup.xCen*0.6-Ball.width/2) (setup.ScrHeight-Tube.offset-Ball
 
 %%Collect max frequency
 
-text = ['Start...\n\nMausklick für Weiter.'];
+text = ['Start...\n\nMausklick fÃ¼r Weiter.'];
 Screen('TextSize',w,32);
 Screen('TextFont',w,'Arial');
 [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', 'center', color.white,40);
@@ -158,7 +162,7 @@ GetClicks(setup.screenNum);
 while (collectMax_trialCount < 3) %2 trials of 10secs to collect valid maxFreq
     
     if (collectMax_trialCount == 1)
-        text = ['Drücken Sie bitte in den nächsten 10 Sekunden so schnell Sie können die Taste.'];
+        text = ['DrÃ¼cken Sie bitte in den nÃ¤chsten 10 Sekunden so schnell Sie kÃ¶nnen die Taste.'];
         Screen('TextSize',w,32);
         Screen('TextFont',w,'Arial');
         [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', 'center', color.white,40);
