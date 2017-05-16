@@ -7,6 +7,7 @@
 
 % WISHLIST: 
 %-Instructions: Weiter-Button 
+%-Design: screen white/Tube center/increase movement factor
 %-Power Mate Mouseclick
 %-Complete Session
 %========================================================
@@ -14,7 +15,8 @@
 %% Preparation
 
 % Clear workspace
-close all; 
+close all;
+clear all;
 clearvars; 
 sca;
 
@@ -41,7 +43,8 @@ color.white = WhiteIndex(setup.screenNum); %with intensity value for white on se
 color.grey = color.white / 2;
 color.black = BlackIndex(setup.screenNum);
 color.red = [255 0 0];
-color.green = [0 255 0];
+color.green = [0 139 0];
+color.green2 = [0 238 0];
 color.blue = [0 0 255];
 color.gold = [255,215,0];
 
@@ -201,10 +204,9 @@ while (collectMax_trialCount < 3) %2 trials of 10secs to collect valid maxFreq
      %      Screen('DrawTexture', effort_scr, stim.coin10,[], [0 0 Coin.width Coin.width*.84]);
            
      % Draw Ball
-            Screen('CopyWindow',effort_scr,w);
-            Ball.position = [(setup.xCen-Ball.width/2) (setup.ScrHeight-Tube.offset-Ball.width)-(draw_frequency*draw_frequency_factor) (setup.xCen+Ball.width/2) (setup.ScrHeight-Tube.offset)-(draw_frequency*draw_frequency_factor)];
-%            Screen('FillOval',w,color.green,[(setup.xCen-Ball.width/2) (setup.ScrHeight-Tube.offset-Ball.width)-(draw_frequency*10) (setup.xCen+Ball.width/2) (setup.ScrHeight-Tube.offset)-(draw_frequency*10)]);
-                Screen('FillOval',w,color.green,Ball.position);
+            Screen('CopyWindow',effort_scr,w); 
+            Ball.position = [(setup.xCen-Ball.width/2) (setup.ScrHeight-Tube.offset-Ball.width)-(draw_frequency*draw_frequency_factor) (setup.xCen+Ball.width/2) (setup.ScrHeight-Tube.offset)-(draw_frequency*draw_frequency_factor)];    
+            Screen('FillOval',w,color.green,Ball.position);
 
             Screen('Flip', w);
 
@@ -213,24 +215,26 @@ while (collectMax_trialCount < 3) %2 trials of 10secs to collect valid maxFreq
 
              if c(keys.resp) > 0
                      key_timestamp = GetSecs;   %b papameter does not work!
-                     current_input = key_timestamp - key_timestampN_1;
+                     
+                     if (key_timestamp > (collectMax_time.onset + 0.1)); %if keypress starts during fixation phase, the initial interval might be too short. Frequency estimation the n becomes skewed
+                         current_input = key_timestamp - key_timestampN_1;
 
-                    %Exponential weightended Average of RT for frequency estimation
-                    current_weight_fact = forget_fact * prev_weight_fact + 1;
-                    Avrg_value = (1-(1/current_weight_fact)) * prev_movingAvrg + ((1/current_weight_fact) * current_input);
-                    collectMax.freq = freq_interval/Avrg_value;
+                        %Exponential weightended Average of RT for frequency estimation
+                        current_weight_fact = forget_fact * prev_weight_fact + 1;
+                        Avrg_value = (1-(1/current_weight_fact)) * prev_movingAvrg + ((1/current_weight_fact) * current_input);
+                        collectMax.freq = freq_interval/Avrg_value;
 
-                    %Refresh values in output vector
-                    prev_weight_fact = current_weight_fact; 
-                    prev_movingAvrg = Avrg_value;
-                    key_timestampN_1 = key_timestamp;
-                        collectMax.clicks(1,collectMax_index) = key_timestamp;
-                        collectMax.avrg(1,collectMax_index) = Avrg_value;
-                        collectMax.clickinterval(1,collectMax_index) = current_input;
-                        collectMax.frequency(1,collectMax_index) = collectMax.freq;
-                        draw_frequency = collectMax.freq; %updates Ball height
-                        collectMax_index = collectMax_index + 1;
-
+                        %Refresh values in output vector
+                        prev_weight_fact = current_weight_fact; 
+                        prev_movingAvrg = Avrg_value;
+                        key_timestampN_1 = key_timestamp;
+                            collectMax.clicks(1,collectMax_index) = key_timestamp;
+                            collectMax.avrg(1,collectMax_index) = Avrg_value;
+                            collectMax.clickinterval(1,collectMax_index) = current_input;
+                            collectMax.frequency(1,collectMax_index) = collectMax.freq;
+                            draw_frequency = collectMax.freq; %updates Ball height
+                            collectMax_index = collectMax_index + 1;
+                     end
              
             elseif (GetSecs - key_timestampN_1) > (1.5 * Avrg_value) && (collectMax_index > 1);
                 
@@ -288,7 +292,7 @@ current_input = 0;
 Avrg_value = 0;
  
 % Effort-Reward Threshold
-input.percent70Frequency = input.maxFrequency * 0.7;
+input.percent70Frequency = input.maxFrequency * 0.9;
 
 output.freq=0;
 output.clicks = nan(1,400); % stores clicks: timestamp
@@ -297,15 +301,26 @@ output.avrg = nan(1,400); %stores weighted interval value of a click
 output.frequency = nan(1,400); %stores weighted interval value of a click
 collect_freq_index = 1;
 phantom_index = 1;
- 
+
+output.payout_money = nan(1,400);
+output.payout_calories = 0;
+
+trials_per_run_counter = 1;
+trials_per_session = 2;
+
+
 draw_frequency = 0; %combines output.frequency and phantom frequency to smoothen ball position
 
- text = ['Main experiment \n\nWeiter mit Mausklick'];
-    [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', 'center', color.black,40);
-    Screen('Flip',w);
+text = ['Main experiment \n\nWeiter mit Mausklick'];
+[pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', 'center', color.black,40);
+Screen('Flip',w);
     
-    GetClicks(setup.screenNum);
-    WaitSecs(1.5);
+GetClicks(setup.screenNum);
+WaitSecs(1.5);
+
+
+%% Built trialwise
+while trials_per_run_counter < (trials_per_session+1) %trials per run starts with 1!
     
     fix = ['+'];
     Screen('TextSize',w,64);
@@ -315,85 +330,102 @@ draw_frequency = 0; %combines output.frequency and phantom frequency to smoothen
 
     WaitSecs(1); %Show screen for 1s
 
-%% load and show Coin
-% [img.coin10, img.map, img.alpha] = imread('cent10.jpeg');
-% stim.coin10 = Screen('MakeTexture', w, img.coin10); %ggf Hintergrund transparent machen
-[img.incentive_sweets2, img.map, img.alpha] = imread('incentive_sweets2.jpg');
-stim.incentive_sweets2 = Screen('MakeTexture', w, img.incentive_sweets2); %ggf Hintergrund transparent machen
-Screen('DrawTexture', w, stim.incentive_sweets2,[], [((setup.xCen-Tube.width/2)-Coin.width) (setup.ScrHeight-Tube.offset-(input.percent70Frequency*draw_frequency_factor)-Coin.width) (setup.xCen-Tube.width/2) (setup.ScrHeight-Tube.offset-(input.percent70Frequency*draw_frequency_factor))]);
-time.img = Screen('Flip', w);
+    % load and show Coin
+    [img.incentive_coins10, img.map, img.alpha] = imread('incentive_coins10.jpg');
+    stim.incentive_coins10 = Screen('MakeTexture', w, img.incentive_coins10); %ggf Hintergrund transparent machen
+    % [img.incentive_sweets2, img.map, img.alpha] = imread('incentive_sweets2.jpg');
+    % stim.incentive_sweets2 = Screen('MakeTexture', w, img.incentive_sweets2); %ggf Hintergrund transparent machen
+    Screen('DrawTexture', w, stim.incentive_coins10,[], [((setup.xCen-Tube.width/2)-Coin.width-10) (setup.ScrHeight/2-Coin.width) (setup.xCen-Tube.width/2-10) (setup.ScrHeight/2)]);
+    time.img = Screen('Flip', w);
 
-WaitSecs(1); %Show screen for 1s
+    WaitSecs(1); %Show screen for 1s
 
-trial_time.onset = GetSecs;
-key_timestampN_1 = trial_time.onset;
+    trial_time.onset = GetSecs;
+    key_timestampN_1 = trial_time.onset;
 
-while (30 > (GetSecs-trial_time.onset))       %Trial-length 30sec
+    while (30 > (GetSecs-trial_time.onset))       %Trial-length 30sec
+
+          % Draw Tube
+            Screen('DrawLine',effort_scr,color.black,(setup.xCen-Tube.width/2), (Tube.offset+setup.ScrHeight/2), (setup.xCen-Tube.width/2), (setup.ScrHeight-Tube.offset),6);
+            Screen('DrawLine',effort_scr,color.black,(setup.xCen+Tube.width/2), (Tube.offset+setup.ScrHeight/2), (setup.xCen+Tube.width/2), (setup.ScrHeight-Tube.offset),6);
+            Screen('DrawLine',effort_scr,color.black,(setup.xCen-Tube.width/2), (setup.ScrHeight-Tube.offset), (setup.xCen+Tube.width/2), (setup.ScrHeight-Tube.offset),6);
+          % Draw 70% line
+            Threshold.yposition = (setup.ScrHeight-Tube.offset-(input.percent70Frequency*draw_frequency_factor));
+            Screen('DrawLine',effort_scr,color.red,(setup.xCen-Tube.width/2), Threshold.yposition, (setup.xCen+Tube.width/2), Threshold.yposition,3);
+
+            Screen('DrawTexture', effort_scr, stim.incentive_coins10,[], [((setup.xCen-Tube.width/2)-Coin.width-10) (setup.ScrHeight/2-Coin.width) (setup.xCen-Tube.width/2-10) (setup.ScrHeight/2)]);
+            Screen('CopyWindow',effort_scr,w);
+          % Draw Ball
+            Ball.position = [(setup.xCen-Ball.width/2) ((setup.ScrHeight-Tube.offset-Ball.width)-(draw_frequency*draw_frequency_factor)) (setup.xCen+Ball.width/2) ((setup.ScrHeight-Tube.offset)-(draw_frequency*draw_frequency_factor))];
+
+            if (Ball.position(1,4) < Threshold.yposition)
             
-      % Draw Tube
-        Screen('DrawLine',effort_scr,color.black,(setup.xCen-Tube.width/2), (Tube.offset+setup.ScrHeight/2), (setup.xCen-Tube.width/2), (setup.ScrHeight-Tube.offset),6)
-        Screen('DrawLine',effort_scr,color.black,(setup.xCen+Tube.width/2), (Tube.offset+setup.ScrHeight/2), (setup.xCen+Tube.width/2), (setup.ScrHeight-Tube.offset),6)
-        Screen('DrawLine',effort_scr,color.black,(setup.xCen-Tube.width/2), (setup.ScrHeight-Tube.offset), (setup.xCen+Tube.width/2), (setup.ScrHeight-Tube.offset),6)
-      % Draw 70% line
-        Screen('DrawLine',effort_scr,color.red,(setup.xCen-Tube.width/2), (setup.ScrHeight-Tube.offset-(input.percent70Frequency*draw_frequency_factor)), (setup.xCen+Tube.width/2), (setup.ScrHeight-Tube.offset-(input.percent70Frequency*draw_frequency_factor)),3)
+                Screen('FillOval',w,color.green2,Ball.position);
+                Screen('Flip', w);
+                
+            else
+                
+                Screen('FillOval',w,color.green,Ball.position);
+                Screen('Flip', w);
+            
+            end
 
-        Screen('DrawTexture', effort_scr, stim.incentive_sweets2,[], [((setup.xCen-Tube.width/2)-Coin.width-10) (setup.ScrHeight-Tube.offset-(input.percent70Frequency*draw_frequency_factor)-Coin.width) (setup.xCen-Tube.width/2-10) (setup.ScrHeight-Tube.offset-(input.percent70Frequency*draw_frequency_factor))]);
-        Screen('CopyWindow',effort_scr,w);
-      % Draw Ball
-        Ball.position = [(setup.xCen-Ball.width/2) ((setup.ScrHeight-Tube.offset-Ball.width)-(draw_frequency*draw_frequency_factor)) (setup.xCen+Ball.width/2) ((setup.ScrHeight-Tube.offset)-(draw_frequency*draw_frequency_factor))];
-%       Screen('FillOval',w,color.green,[(setup.xCen-Ball.width/2) (setup.ScrHeight-Tube.offset-Ball.width)-(draw_frequency*10) (setup.xCen+Ball.width/2) (setup.ScrHeight-Tube.offset)-(draw_frequency*10)]);
-        Screen('FillOval',w,color.green,Ball.position);
+            [b,c] = KbQueueCheck;      
 
-        Screen('Flip', w);
-        
-        [b,c] = KbQueueCheck;      
-         
-       
-         if c(keys.resp) > 0
-                 key_timestamp = GetSecs;   %b papameter does not work!
-                 current_input = key_timestamp - key_timestampN_1;
- 
-                %Exponential weightended Average of RT for frequency estimation
-                current_weight_fact = forget_fact * prev_weight_fact + 1;
-                Avrg_value = (1-(1/current_weight_fact)) * prev_movingAvrg + ((1/current_weight_fact) * current_input);
-                output.freq = freq_interval/Avrg_value;
- 
 
-                %Refresh values in output vector
-                prev_weight_fact = current_weight_fact; 
-                prev_movingAvrg = Avrg_value;
-                key_timestampN_1 = key_timestamp;
-                    output.clicks(1,collect_freq_index) = key_timestamp;
-                    output.avrg(1,collect_freq_index) = Avrg_value;
-                    output.clickinterval(1,collect_freq_index) = current_input;
-                    output.frequency(1,collect_freq_index) = output.freq;
-                    draw_frequency = output.freq; %updates Ball height
-                    collect_freq_index = collect_freq_index + 1;
+             if c(keys.resp) > 0
+                     key_timestamp = GetSecs;   %b papameter does not work!
+                     
+                     if (key_timestamp > (trial_time.onset + 0.1))
+                         current_input = key_timestamp - key_timestampN_1;
+
+                        %Exponential weightended Average of RT for frequency estimation
+                        current_weight_fact = forget_fact * prev_weight_fact + 1;
+                        Avrg_value = (1-(1/current_weight_fact)) * prev_movingAvrg + ((1/current_weight_fact) * current_input);
+                        output.freq = freq_interval/Avrg_value;
+
+
+                        %Refresh values in output vector
+                        prev_weight_fact = current_weight_fact; 
+                        prev_movingAvrg = Avrg_value;
+                        key_timestampN_1 = key_timestamp;
+                            output.clicks(1,collect_freq_index) = key_timestamp;
+                            output.avrg(1,collect_freq_index) = Avrg_value;
+                            output.clickinterval(1,collect_freq_index) = current_input;
+                            output.frequency(1,collect_freq_index) = output.freq;
+                            draw_frequency = output.freq; %updates Ball height
+                            collect_freq_index = collect_freq_index + 1;
+                            
+                     end
+
+             elseif (GetSecs - key_timestampN_1) > (1.5 * Avrg_value) && (collect_freq_index > 1);
+
+                    phantom_current_input = GetSecs - key_timestampN_1;
+
+                    current_weight_fact = forget_fact * prev_weight_fact + 1;
+                    Estimate_Avrg_value = (1-(1/current_weight_fact)) * prev_movingAvrg + ((1/current_weight_fact) * phantom_current_input);
+                    phantom.freq = freq_interval/Estimate_Avrg_value;
+
+
+                    %Refresh values in phantom output vector
+                    prev_weight_fact = current_weight_fact; 
+                    prev_movingAvrg = Estimate_Avrg_value;
+                   % key_timestampN_1 = key_timestamp; Last key press remains unchanged 
+                       % output.clicks(1,output_index) = key_timestamp;
+                        phantom.avrg(1,phantom_index) = Avrg_value;
+                        phantom.clickinterval(1,phantom_index) = current_input;
+                        phantom.frequency(1,phantom_index) = phantom.freq; 
+                        draw_frequency = phantom.freq;  %updates Ball height
+                        phantom_index = phantom_index + 1;
+
+             end
+              
+          % count payout with  output.payout_money  
+    end 
          
-         elseif (GetSecs - key_timestampN_1) > (1.5 * Avrg_value) && (collect_freq_index > 1);
-                
-                phantom_current_input = GetSecs - key_timestampN_1;
-                
-                current_weight_fact = forget_fact * prev_weight_fact + 1;
-                Estimate_Avrg_value = (1-(1/current_weight_fact)) * prev_movingAvrg + ((1/current_weight_fact) * phantom_current_input);
-                phantom.freq = freq_interval/Estimate_Avrg_value;
-                
-                
-                %Refresh values in phantom output vector
-                prev_weight_fact = current_weight_fact; 
-                prev_movingAvrg = Estimate_Avrg_value;
-               % key_timestampN_1 = key_timestamp; Last key press remains unchanged 
-                   % output.clicks(1,output_index) = key_timestamp;
-                    phantom.avrg(1,phantom_index) = Avrg_value;
-                    phantom.clickinterval(1,phantom_index) = current_input;
-                    phantom.frequency(1,phantom_index) = phantom.freq; 
-                    draw_frequency = phantom.freq;  %updates Ball height
-                    phantom_index = phantom_index + 1;
-                
-          end
-end 
-         
- 
+ trials_per_run_counter = trials_per_run_counter + 1;
+end
+
 
 text = ['Well done!'];
 [pos.text.x,pos.text.y,pos.text.bbox] = DrawFormattedText(w, text, 'center', 'center', color.black,80);
